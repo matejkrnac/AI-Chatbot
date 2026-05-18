@@ -2,47 +2,123 @@ import streamlit as st
 from openai import OpenAI
 import os
 
-st.set_page_config(page_title="AI Chatbot", page_icon="🤖")
+st.set_page_config(page_title="ChatGPT Clone", page_icon="💬", layout="centered")
 
-st.title("🤖 AI Chatbot")
+st.title("💬 ChatGPT Clone")
 
-# API client (key ide zo Streamlit Secrets)
+# OpenRouter client
 client = OpenAI(
     api_key=os.getenv("OPENROUTER_API_KEY"),
     base_url="https://openrouter.ai/api/v1"
 )
 
-# chat memory
-if "chat" not in st.session_state:
-    st.session_state.chat = []
+# init memory
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+# UI render (bubbles)
+def render_chat():
+    for msg in st.session_state.messages:
+        if msg["role"] == "user":
+            st.markdown(
+                f"""
+                <div style="text-align:right; margin:10px;">
+                    <div style="
+                        background:#2b7cff;
+                        color:white;
+                        padding:10px 14px;
+                        border-radius:18px;
+                        display:inline-block;
+                        max-width:80%;
+                    ">
+                        {msg["content"]}
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+        else:
+            st.markdown(
+                f"""
+                <div style="text-align:left; margin:10px;">
+                    <div style="
+                        background:#2a2a2a;
+                        color:white;
+                        padding:10px 14px;
+                        border-radius:18px;
+                        display:inline-block;
+                        max-width:80%;
+                    ">
+                        {msg["content"]}
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+# fallback model list (dôležité kvôli 404)
+MODELS = [
+    "mistralai/mistral-7b-instruct:free",
+    "google/gemma-2-9b-it:free",
+]
+
+def stream_response(messages):
+    last_error = None
+
+    for model in MODELS:
+        try:
+            stream = client.chat.completions.create(
+                model=model,
+                messages=messages,
+                stream=True
+            )
+
+            full_response = ""
+            placeholder = st.empty()
+
+            for chunk in stream:
+                if chunk.choices[0].delta.content:
+                    full_response += chunk.choices[0].delta.content
+                    placeholder.markdown(
+                        f"""
+                        <div style="text-align:left; margin:10px;">
+                            <div style="
+                                background:#2a2a2a;
+                                color:white;
+                                padding:10px 14px;
+                                border-radius:18px;
+                                display:inline-block;
+                                max-width:80%;
+                            ">
+                                {full_response}▌
+                            </div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
+
+            return full_response
+
+        except Exception as e:
+            last_error = str(e)
+            continue
+
+    return f"Error: všetky modely zlyhali → {last_error}"
 
 # input
-user_input = st.text_input("Napíš správu:")
+user_input = st.chat_input("Napíš správu...")
 
-# AI response
-def get_response(message):
-    completion = client.chat.completions.create(
-        model="meta-llama/llama-3.1-8b-instruct:free",
-        messages=[
-            {"role": "user", "content": message}
-        ]
-    )
-    return completion.choices[0].message.content
-
-# logic
 if user_input:
-    st.session_state.chat.append(("You", user_input))
+    st.session_state.messages.append({"role": "user", "content": user_input})
 
-    try:
-        bot_response = get_response(user_input)
-    except Exception as e:
-        bot_response = f"Error: {str(e)}"
+    api_messages = [
+        {"role": m["role"], "content": m["content"]}
+        for m in st.session_state.messages
+    ]
 
-    st.session_state.chat.append(("Bot", bot_response))
+    response = stream_response(api_messages)
 
-# render chat
-for role, msg in st.session_state.chat:
-    if role == "You":
-        st.markdown(f"**🧑 Ty:** {msg}")
-    else:
-        st.markdown(f"**🤖 Bot:** {msg}")
+    st.session_state.messages.append({"role": "assistant", "content": response})
+
+# render UI
+render_chat()
