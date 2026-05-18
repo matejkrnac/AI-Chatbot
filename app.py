@@ -6,22 +6,23 @@ st.set_page_config(page_title="AI Chatbot", page_icon="🤖")
 
 st.title("🤖 AI Chatbot")
 
-# OpenRouter client
+# API client (key ide zo Streamlit Secrets)
 client = OpenAI(
     api_key=os.getenv("OPENROUTER_API_KEY"),
     base_url="https://openrouter.ai/api/v1"
 )
 
-# init chat history
+# chat memory
 if "chat" not in st.session_state:
     st.session_state.chat = []
 
 # input
 user_input = st.text_input("Napíš správu:")
 
+# AI response
 def get_response(message):
     completion = client.chat.completions.create(
-        model="deepseek/deepseek-chat-v3-0324:free",
+        model="meta-llama/llama-3.1-8b-instruct:free",
         messages=[
             {"role": "user", "content": message}
         ]
