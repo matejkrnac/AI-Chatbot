@@ -1,31 +1,47 @@
 import streamlit as st
+from openai import OpenAI
+import os
 
-st.title("🤖 Free AI Chatbot (Portfolio)")
+st.set_page_config(page_title="AI Chatbot", page_icon="🤖")
 
+st.title("🤖 AI Chatbot")
+
+# OpenRouter client
+client = OpenAI(
+    api_key=os.getenv("OPENROUTER_API_KEY"),
+    base_url="https://openrouter.ai/api/v1"
+)
+
+# init chat history
 if "chat" not in st.session_state:
     st.session_state.chat = []
 
-def respond(msg):
-    msg = msg.lower()
+# input
+user_input = st.text_input("Napíš správu:")
 
-    if "hello" in msg or "hi" in msg:
-        return "Hi 👋"
-    elif "name" in msg:
-        return "I am a free portfolio bot 🤖"
-    elif "python" in msg:
-        return "Python is great 🐍"
-    elif "job" in msg:
-        return "Keep building your portfolio 💼"
+def get_response(message):
+    completion = client.chat.completions.create(
+        model="deepseek/deepseek-chat-v3-0324:free",
+        messages=[
+            {"role": "user", "content": message}
+        ]
+    )
+    return completion.choices[0].message.content
+
+# logic
+if user_input:
+    st.session_state.chat.append(("You", user_input))
+
+    try:
+        bot_response = get_response(user_input)
+    except Exception as e:
+        bot_response = f"Error: {str(e)}"
+
+    st.session_state.chat.append(("Bot", bot_response))
+
+# render chat
+for role, msg in st.session_state.chat:
+    if role == "You":
+        st.markdown(f"**🧑 Ty:** {msg}")
     else:
-        return "I am a simple demo bot 🤖"
-
-user = st.text_input("Type message:")
-
-if user:
-    bot = respond(user)
-
-    st.session_state.chat.append(("You", user))
-    st.session_state.chat.append(("Bot", bot))
-
-for s, m in st.session_state.chat:
-    st.write(f"**{s}:** {m}")
+        st.markdown(f"**🤖 Bot:** {msg}")
