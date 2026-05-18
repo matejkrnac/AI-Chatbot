@@ -1,38 +1,31 @@
 import streamlit as st
 
-st.set_page_config(page_title="AI Chatbot", page_icon="🤖")
-
-st.title("🤖 AI Chatbot Portfolio Project")
+st.title("🤖 Free AI Chatbot (Portfolio)")
 
 if "chat" not in st.session_state:
     st.session_state.chat = []
 
-def respond(message):
-    message = message.lower()
+def respond(msg):
+    msg = msg.lower()
 
-    if "hello" in message or "hi" in message:
-        return "Hi! 👋 I am your AI chatbot."
-    elif "name" in message:
-        return "I am a portfolio AI assistant 🤖"
-    elif "python" in message:
-        return "Python is a powerful programming language 🐍"
-    elif "job" in message:
-        return "Keep building projects for your portfolio 💼"
-    elif "help" in message:
-        return "I can answer basic questions and chat with you 😄"
+    if "hello" in msg or "hi" in msg:
+        return "Hi 👋"
+    elif "name" in msg:
+        return "I am a free portfolio bot 🤖"
+    elif "python" in msg:
+        return "Python is great 🐍"
+    elif "job" in msg:
+        return "Keep building your portfolio 💼"
     else:
-        return "I am a simple AI demo chatbot 🤖"
+        return "I am a simple demo bot 🤖"
 
-user_input = st.text_input("Type your message:")
+user = st.text_input("Type message:")
 
-if user_input:
-    reply = respond(user_input)
+if user:
+    bot = respond(user)
 
-    st.session_state.chat.append(("You", user_input))
-    st.session_state.chat.append(("Bot", reply))
+    st.session_state.chat.append(("You", user))
+    st.session_state.chat.append(("Bot", bot))
 
-for sender, msg in st.session_state.chat:
-    if sender == "You":
-        st.write(f"🧑 {msg}")
-    else:
-        st.write(f"🤖 {msg}")
+for s, m in st.session_state.chat:
+    st.write(f"**{s}:** {m}")
