@@ -58,8 +58,8 @@ def render_chat():
 
 # fallback model list (dôležité kvôli 404)
 MODELS = [
-    "mistralai/mistral-7b-instruct:free",
-    "google/gemma-2-9b-it:free",
+"mistralai/mistral-7b-instruct"
+]
 ]
 
 def stream_response(messages):
