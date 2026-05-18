@@ -12,11 +12,14 @@ client = OpenAI(
     base_url="https://openrouter.ai/api/v1"
 )
 
-# init memory
+# memory
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# UI render (bubbles)
+# model (JEDEN stabilný – žiadne free tagy)
+MODEL = "mistralai/mistral-7b-instruct"
+
+# render chat UI
 def render_chat():
     for msg in st.session_state.messages:
         if msg["role"] == "user":
@@ -56,54 +59,39 @@ def render_chat():
                 unsafe_allow_html=True
             )
 
-# fallback model list (dôležité kvôli 404)
-MODELS = [
-"mistralai/mistral-7b-instruct"
-]
-]
-
+# streaming answer
 def stream_response(messages):
-    last_error = None
+    stream = client.chat.completions.create(
+        model=MODEL,
+        messages=messages,
+        stream=True
+    )
 
-    for model in MODELS:
-        try:
-            stream = client.chat.completions.create(
-                model=model,
-                messages=messages,
-                stream=True
+    full = ""
+    placeholder = st.empty()
+
+    for chunk in stream:
+        if chunk.choices[0].delta.content:
+            full += chunk.choices[0].delta.content
+            placeholder.markdown(
+                f"""
+                <div style="text-align:left; margin:10px;">
+                    <div style="
+                        background:#2a2a2a;
+                        color:white;
+                        padding:10px 14px;
+                        border-radius:18px;
+                        display:inline-block;
+                        max-width:80%;
+                    ">
+                        {full}▌
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True
             )
 
-            full_response = ""
-            placeholder = st.empty()
-
-            for chunk in stream:
-                if chunk.choices[0].delta.content:
-                    full_response += chunk.choices[0].delta.content
-                    placeholder.markdown(
-                        f"""
-                        <div style="text-align:left; margin:10px;">
-                            <div style="
-                                background:#2a2a2a;
-                                color:white;
-                                padding:10px 14px;
-                                border-radius:18px;
-                                display:inline-block;
-                                max-width:80%;
-                            ">
-                                {full_response}▌
-                            </div>
-                        </div>
-                        """,
-                        unsafe_allow_html=True
-                    )
-
-            return full_response
-
-        except Exception as e:
-            last_error = str(e)
-            continue
-
-    return f"Error: všetky modely zlyhali → {last_error}"
+    return full
 
 # input
 user_input = st.chat_input("Napíš správu...")
@@ -120,5 +108,5 @@ if user_input:
 
     st.session_state.messages.append({"role": "assistant", "content": response})
 
-# render UI
+# render
 render_chat()
